@@ -1,0 +1,3 @@
+#!/bin/bash
+
+cp ta/8aaaf200-2450-11e4-6969-696969696969.ta /lib/optee_armtz/
