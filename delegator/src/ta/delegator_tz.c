@@ -1,30 +1,3 @@
-/*
- * Copyright (c) 2016, Linaro Limited
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
- *
- * 1. Redistributions of source code must retain the above copyright notice,
- * this list of conditions and the following disclaimer.
- *
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- * this list of conditions and the following disclaimer in the documentation
- * and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
- * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
- */
-
 #include <stdio.h>
 #include <string.h>
 #include <tee_internal_api.h>
@@ -38,6 +11,12 @@
 #endif
 #define ATTR_REF(CNT, ATTR, BUF) \
 	TEE_InitRefAttribute(&attrs[(CNT)++], (ATTR), (BUF).b, (BUF).sz)
+
+#define LOG_RET(ret) 						\
+	if((ret)!=TEE_SUCCESS) { 				\
+		EMSG("ERR: %d %X", __LINE__, ret); 	\
+		return ret; 						\
+	}
 
 /*
  * Called when the instance of the TA is created. This is the first call in
@@ -101,6 +80,7 @@ void TA_CloseSessionEntryPoint(void __maybe_unused *sess_ctx)
 	EMSG("Goodbye!\n");
 }
 
+// Creates new RSA key
 static TEE_ObjectHandle create_rsa_key(struct keypair_t *kp) {
 	TEE_Result res;
 	TEE_ObjectHandle obj = TEE_HANDLE_NULL;
@@ -136,6 +116,7 @@ err:
 	return TEE_HANDLE_NULL;
 }
 
+// Creates new ECC key
 static TEE_ObjectHandle create_ecc_key(struct keypair_t *kp) {
 	TEE_Result res;
 	TEE_ObjectHandle obj = TEE_HANDLE_NULL;
@@ -170,6 +151,7 @@ err:
 	return TEE_HANDLE_NULL;
 }
 
+// Puts the key to the storage
 static TEE_Result install_key(uint32_t param_types,
 	TEE_Param params[4])
 {
@@ -222,6 +204,7 @@ static TEE_Result install_key(uint32_t param_types,
 	return TEE_SUCCESS;
 }
 
+// Checks if key exists in the storage
 static TEE_Result has_key(uint32_t param_types, TEE_Param params[4]) {
 	TEE_Result ret;
 	uint32_t c = 0;
@@ -260,7 +243,7 @@ static TEE_Result has_key(uint32_t param_types, TEE_Param params[4]) {
 	return TEE_SUCCESS;
 }
 
-
+// Performs key deletion from the secure storage
 static TEE_Result del_key(uint32_t param_types, TEE_Param params[4]) {
 	TEE_Result ret;
 	char fname[SHA256_SIZE] = {0};
@@ -293,13 +276,8 @@ static TEE_Result del_key(uint32_t param_types, TEE_Param params[4]) {
 	return TEE_SUCCESS;
 }
 
-#define LOG_RET(ret) 						\
-	if((ret)!=TEE_SUCCESS) { 				\
-		EMSG("ERR: %d %X", __LINE__, ret); 	\
-		return ret; 						\
-	}
-
-static TEE_Result EcdsaSign(uint32_t param_types, TEE_Param params[4]) {
+// Performs ECDSA signing with a key from secure storage
+static TEE_Result sign_ecdsa(uint32_t param_types, TEE_Param params[4]) {
 	TEE_Result ret;
 	TEE_OperationHandle op = TEE_HANDLE_NULL;
 
@@ -365,7 +343,7 @@ TEE_Result TA_InvokeCommandEntryPoint(void __maybe_unused *sess_ctx,
 	case TA_DEL_KEYS:
 		return del_key(param_types, params);
 	case TA_SIGN_ECC:
-		return EcdsaSign(param_types, params);
+		return sign_ecdsa(param_types, params);
 	default:
 		return TEE_ERROR_BAD_PARAMETERS;
 	}

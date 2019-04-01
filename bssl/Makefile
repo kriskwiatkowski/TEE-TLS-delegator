@@ -11,14 +11,20 @@ CXX := $(PRJ_DIR)/toolchains/aarch64/bin/aarch64-linux-gnu-c++
 BUILD_DIR = src/build
 MAKE = cmake --build .
 
-all: prepare build
+all: prepare build build-native
 
 clean:
 	rm -rf $(BUILD_DIR)
 
 build:
 	#patch -d src/ -p1 < boringssl_arm64.patch
-	make -C src/build
+	make -C $(BUILD_DIR)
+
+build-native:
+	rm -rf src/build.native
+	mkdir -p src/build.native
+	cd src/build.native; cmake ..
+	cd src/build.native; make
 
 prepare: clean
 	rm -rf $(BUILD_DIR)

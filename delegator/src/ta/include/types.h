@@ -1,5 +1,5 @@
-#ifndef headers_H_
-#define headers_H_
+#ifndef TYPES_H
+#define TYPES_H
 
 #include <stdint.h>
 #define MOVBSIGN(x) (-((x) >> 31))
@@ -57,4 +57,4 @@ struct keypair_t {
     } u;
 };
 
-#endif // headers_H_
+#endif // TYPES_H

@@ -1,0 +1,3 @@
+bssl/src/build
+delegator/out
+delegator/.Makefile.x86_temp
