@@ -4,37 +4,30 @@
 
 ### Problem description
 
-Typically, a TLS server uses a Certificate and associated Private Key in order to sign TLS session. From now on I'll call this Private Key a "traffic- private-key". Both certificate and traffic-private-key form a asymmetric cryptographic key-pair. Revealing the traffic-private-key makes it possible to perform men-in-the-middle type of attacks. Typically traffic-private-key is stored on the server's hard disk. Even if traffic-private-key is stored in encrypted form, at some point HTTPS server needs to have a possibility to decrypt it in order to use for signing. It means that at runtime the key in plaintext will be available in a memory of a HTTPS process. At this point attacker with an access to the machine may be able to dump memory of the process and learn the traffic-private-key.
+Typically, a TLS server uses a Certificate and associated Private Key to sign TLS session. From now on I'll call this Private Key a "traffic- private-key". Both certificate and traffic-private-key form an asymmetric cryptographic key-pair. Revealing the traffic-private-key makes it possible to perform men-in-the-middle type of attacks. Typically traffic-private-key is stored on the server's hard disk. Even if traffic-private-key is stored in encrypted form, at some point HTTPS server needs to have a possibility to decrypt it to use for signing. It means that at runtime the key in the plaintext will be available in memory of an HTTPS process. At this point attacker with access to the machine may be able to dump the memory of the process and learn the traffic-private-key.
 
-Hence, server operators need to take special care in order to make sure traffic-private-keys are not revealed.
+Hence, server operators need to take special care to make sure traffic-private-keys are not revealed.
 
-This situation gets more complicated in cases when server operator and domain owner are 2 different entities. For example in case of CDN, TLS offloading happens on the edge system - which often is a completely different machine than actual application server. Also it is often the case that servers (physical machines) of CDN provider are spread over the world and are located in remote data centers. Those data centers may be owned by multiple different entities.
+This situation gets more complicated in cases when a server operator and domain owner are 2 different entities. For example in the case of CDN, TLS offloading happens on the edge system - which often is a completely different machine than the actual application server. Also, it is often the case that servers (physical machines) of CDN provider are spread over the world and are located in remote data centres. Those data centres may be owned by multiple different entities.
 
-In such situations, problem of ensuring that the traffic-private-key is not copied and used by an attacker may be challenging and not obvious to solve. Clients of the CDN may also be concerned about idea of spreading the traffic-private-key over the world.
+In such situations, the problem of ensuring that the traffic-private-key is not copied and used by an attacker may be challenging and not obvious to solve. Clients of the CDN may also be concerned about the idea of spreading the traffic-private-key over the world.
 
-### Solution proposed
+### Our proposal
 
-For brevity I'm assuming server uses only TLS 1.3 as specified in [RFC8446], but solution can be adapted to any version of TLS.
+For brevity, I'm assuming server uses only TLS 1.3 as specified in [RFC8446], but the solution can be adapted to any version of TLS.
 
-The idea is to perform TLS session signing inside Trusted Execution Environment. The traffic-private-key will be accessible only to TEE. Additionally, solution ensures that key is stored in encrypted form in trusted storage. The storage is bound to the physical machine and hence copy of the storage can’t be used on some different machine.
+The idea is to perform TLS session signing inside the Trusted Execution Environment. The traffic-private-key will be accessible only to TEE. Additionally, the solution ensures that the key is stored in encrypted form in trusted storage. The storage is bound to the physical machine and hence a copy of the storage can’t be used on some different machine.
 
-The solution as implemented in the PoC and described below is based on ARM TrustZone and it uses open sourced TEE called OP-TEE (see [OP-TEE]), sources of OP-TEE are stored on github (see [OP-TEE-SRC]). OP-TEE was driven by the fact that author is quite familiar with environment nevertheless it can be implemented with other TEEs which provide device bound trusted storage. Author is convinced that Intel SGX with Asylo would be better choice here.  Solution makes also heavy use of BoringSSL for handling with TLS traffic.
+The solution as implemented in the PoC and described below is based on ARM TrustZone and it uses open-sourced TEE called OP-TEE (see [OP-TEE]), sources of OP-TEE are stored on GitHub (see [OP-TEE-SRC]). OP-TEE was driven by the fact that the author is quite familiar with the environment nevertheless it can be implemented with other TEEs which provide device bound trusted storage. The author is convinced that Intel SGX with Asylo would be a better choice here.  The solution makes also heavy use of BoringSSL for handling with TLS traffic.
 
-Points below describe implementation in more details:
+Points below describe the implementation in more details:
 
-1. Key provisioning server
+1. The key provisioning server
 
-    It is assumed that machine is initially provisioned with a software
-    which acts as a server for traffic-private-key provisioning.
-
-    In order to install traffic-private-key on a machine, operator connects
-    to key provisioning server and sends the traffic-private-key to be
-    installed on the machine. This operation is done over TLS connection which uses
-    client authentication. Possition of some form of TLS provisioning
-    is required by the operator. Key provisioning server must be able
-    to verify provisioning key, hence verification-provisioning-key is
-    also preinstalleld.
-
+    It is assumed that machine is initially provisioned with a software which acts as a server for traffic-private-key provisioning.
+    
+    To install traffic-private-key on a machine, the operator connects to the key provisioning server and sends the traffic-private-key to be installed on the machine. This operation is done over TLS connection which uses client authentication. Position of some form of TLS provisioning is required by the operator. The key provisioning server must be able to verify provisioning key, hence verification-provisioning-key is also preinstalled.
+    
     After sucessuful TLS authentication, operator sends a pair of
     traffic-private-key and domain name for which the key must be used.
     This pair is installed on secure storage which accessible from TEE
